@@ -1,0 +1,155 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSGenerateMesh
+
+struct Particle
+{
+	float3 pos;
+	float4 col;
+};
+
+float ParticleSize;
+float3 CamPos;
+int RenderMode;
+StructuredBuffer<Particle> ParticleBuffer;
+RWStructuredBuffer<float3> ParticleMeshVert;
+RWStructuredBuffer<float4> ParticelMeshCol;
+RWStructuredBuffer<int> ParticleMeshIndecies;
+
+[numthreads(10, 1, 1)]
+void CSGenerateMesh(uint3 id : SV_DispatchThreadID) {
+	Particle p = ParticleBuffer[id.x];
+	float3 worldPos = float3(p.pos.x, p.pos.y , p.pos.z);
+
+	float3 worldDir = RenderMode > 1 ? float3(1,0,0) * ParticleSize : normalize(CamPos - worldPos) * ParticleSize;
+	float3 upDir = float3(0, 1, 0) * ParticleSize;
+	float3 rightDir = normalize(cross(worldDir, upDir)) * ParticleSize;
+
+	// Vertex Position
+	if (RenderMode == 0) {
+		ParticleMeshVert[id.x * 3 + 0] = worldPos + upDir * 1.5f;
+		ParticleMeshVert[id.x * 3 + 1] = worldPos - rightDir;
+		ParticleMeshVert[id.x * 3 + 2] = worldPos + rightDir;
+
+		// Vertex Colour
+		ParticelMeshCol[id.x * 3 + 0] = p.col.argb * 0.5f;
+		ParticelMeshCol[id.x * 3 + 1] = p.col.argb;
+		ParticelMeshCol[id.x * 3 + 2] = p.col.argb;
+
+		// Indexes
+		ParticleMeshIndecies[id.x * 3 + 0] = id.x * 3 + 0;
+		ParticleMeshIndecies[id.x * 3 + 1] = id.x * 3 + 1;
+		ParticleMeshIndecies[id.x * 3 + 2] = id.x * 3 + 2;
+	
+	}
+	else if (RenderMode == 1) {
+		ParticleMeshVert[id.x * 4 + 0] = worldPos + upDir - rightDir;
+		ParticleMeshVert[id.x * 4 + 1] = worldPos + upDir + rightDir;
+		ParticleMeshVert[id.x * 4 + 2] = worldPos - upDir + rightDir;
+		ParticleMeshVert[id.x * 4 + 3] = worldPos - upDir - rightDir;
+
+		// Vertex Colour
+		ParticelMeshCol[id.x * 4 + 0] = p.col.argb * 0.5f;
+		ParticelMeshCol[id.x * 4 + 1] = p.col.argb;
+		ParticelMeshCol[id.x * 4 + 2] = p.col.argb;
+		ParticelMeshCol[id.x * 4 + 3] = p.col.argb;
+
+		// Indexes
+		ParticleMeshIndecies[id.x * 6 + 0] = id.x * 4 + 0;
+		ParticleMeshIndecies[id.x * 6 + 1] = id.x * 4 + 1;
+		ParticleMeshIndecies[id.x * 6 + 2] = id.x * 4 + 2;
+		ParticleMeshIndecies[id.x * 6 + 3] = id.x * 4 + 0;
+		ParticleMeshIndecies[id.x * 6 + 4] = id.x * 4 + 2;
+		ParticleMeshIndecies[id.x * 6 + 5] = id.x * 4 + 3;
+	}
+	else if (RenderMode == 2) {
+		ParticleMeshVert[id.x * 4 + 0] = worldPos - worldDir;
+		ParticleMeshVert[id.x * 4 + 1] = worldPos + upDir;
+		ParticleMeshVert[id.x * 4 + 2] = worldPos - rightDir + worldDir;
+		ParticleMeshVert[id.x * 4 + 3] = worldPos + rightDir + worldDir;
+
+		// Vertex Colour
+		ParticelMeshCol[id.x * 4 + 0] = p.col.argb * 0.5f;
+		ParticelMeshCol[id.x * 4 + 1] = p.col.argb;
+		ParticelMeshCol[id.x * 4 + 2] = p.col.argb;
+		ParticelMeshCol[id.x * 4 + 3] = p.col.argb;
+
+		// Indexes
+		ParticleMeshIndecies[id.x * 12 + 0] = id.x * 4 + 0;
+		ParticleMeshIndecies[id.x * 12 + 1] = id.x * 4 + 1;
+		ParticleMeshIndecies[id.x * 12 + 2] = id.x * 4 + 3;
+		ParticleMeshIndecies[id.x * 12 + 3] = id.x * 4 + 0;
+		ParticleMeshIndecies[id.x * 12 + 4] = id.x * 4 + 1;
+		ParticleMeshIndecies[id.x * 12 + 5] = id.x * 4 + 2;
+		ParticleMeshIndecies[id.x * 12 + 6] = id.x * 4 + 0;
+		ParticleMeshIndecies[id.x * 12 + 7] = id.x * 4 + 3;
+		ParticleMeshIndecies[id.x * 12 + 8] = id.x * 4 + 2;
+		ParticleMeshIndecies[id.x * 12 + 9] = id.x * 4 + 1;
+		ParticleMeshIndecies[id.x * 12 + 10] = id.x * 4 + 3;
+		ParticleMeshIndecies[id.x * 12 + 11] = id.x * 4 + 2;
+	}
+	else if (RenderMode == 3) {
+		ParticleMeshVert[id.x * 8 + 0] = worldPos + worldDir + upDir - rightDir;
+		ParticleMeshVert[id.x * 8 + 1] = worldPos + worldDir + upDir + rightDir;
+		ParticleMeshVert[id.x * 8 + 2] = worldPos + worldDir - upDir - rightDir;
+		ParticleMeshVert[id.x * 8 + 3] = worldPos + worldDir - upDir + rightDir;
+		ParticleMeshVert[id.x * 8 + 4] = worldPos - worldDir + upDir - rightDir;
+		ParticleMeshVert[id.x * 8 + 5] = worldPos - worldDir + upDir + rightDir;
+		ParticleMeshVert[id.x * 8 + 6] = worldPos - worldDir - upDir - rightDir;
+		ParticleMeshVert[id.x * 8 + 7] = worldPos - worldDir - upDir + rightDir;
+
+		// Vertex Colour
+		ParticelMeshCol[id.x * 8 + 0] = p.col.argb * 0.5f;
+		ParticelMeshCol[id.x * 8 + 1] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 2] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 3] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 4] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 5] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 6] = p.col.argb;
+		ParticelMeshCol[id.x * 8 + 7] = p.col.argb * 0.5f;
+
+		// Indexes
+		ParticleMeshIndecies[id.x * 36 + 0] = id.x * 8 + 0;
+		ParticleMeshIndecies[id.x * 36 + 1] = id.x * 8 + 1;
+		ParticleMeshIndecies[id.x * 36 + 2] = id.x * 8 + 3;
+		ParticleMeshIndecies[id.x * 36 + 3] = id.x * 8 + 0;
+		ParticleMeshIndecies[id.x * 36 + 4] = id.x * 8 + 3;
+		ParticleMeshIndecies[id.x * 36 + 5] = id.x * 8 + 2;
+									
+		ParticleMeshIndecies[id.x * 36 + 6] = id.x * 8 + 4;
+		ParticleMeshIndecies[id.x * 36 + 7] = id.x * 8 + 5;
+		ParticleMeshIndecies[id.x * 36 + 8] = id.x * 8 + 7;
+		ParticleMeshIndecies[id.x * 36 + 9] = id.x * 8 + 4;
+		ParticleMeshIndecies[id.x * 36 + 10] = id.x * 8 + 7;
+		ParticleMeshIndecies[id.x * 36 + 11] = id.x * 8 + 6;
+									
+		ParticleMeshIndecies[id.x * 36 + 12] = id.x * 8 + 0;
+		ParticleMeshIndecies[id.x * 36 + 13] = id.x * 8 + 4;
+		ParticleMeshIndecies[id.x * 36 + 14] = id.x * 8 + 2;
+		ParticleMeshIndecies[id.x * 36 + 15] = id.x * 8 + 4;
+		ParticleMeshIndecies[id.x * 36 + 16] = id.x * 8 + 6;
+		ParticleMeshIndecies[id.x * 36 + 17] = id.x * 8 + 2;
+									
+		ParticleMeshIndecies[id.x * 36 + 18] = id.x * 8 + 1;
+		ParticleMeshIndecies[id.x * 36 + 19] = id.x * 8 + 3;
+		ParticleMeshIndecies[id.x * 36 + 20] = id.x * 8 + 5;
+		ParticleMeshIndecies[id.x * 36 + 21] = id.x * 8 + 5;
+		ParticleMeshIndecies[id.x * 36 + 22] = id.x * 8 + 3;
+		ParticleMeshIndecies[id.x * 36 + 23] = id.x * 8 + 7;
+									
+		ParticleMeshIndecies[id.x * 36 + 24] = id.x * 8 + 0;
+		ParticleMeshIndecies[id.x * 36 + 25] = id.x * 8 + 1;
+		ParticleMeshIndecies[id.x * 36 + 26] = id.x * 8 + 4;
+		ParticleMeshIndecies[id.x * 36 + 27] = id.x * 8 + 1;
+		ParticleMeshIndecies[id.x * 36 + 28] = id.x * 8 + 5;
+		ParticleMeshIndecies[id.x * 36 + 29] = id.x * 8 + 4;
+									
+		ParticleMeshIndecies[id.x * 36 + 30] = id.x * 8 + 3;
+		ParticleMeshIndecies[id.x * 36 + 31] = id.x * 8 + 2;
+		ParticleMeshIndecies[id.x * 36 + 32] = id.x * 8 + 7;
+		ParticleMeshIndecies[id.x * 36 + 33] = id.x * 8 + 2;
+		ParticleMeshIndecies[id.x * 36 + 34] = id.x * 8 + 6;
+		ParticleMeshIndecies[id.x * 36 + 35] = id.x * 8 + 7;
+	}
+
+
+}
